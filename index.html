@@ -62,6 +62,31 @@
   .font-btn:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.08);}
   .font-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 
+  .equip-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  @media (max-width:640px){ .equip-grid{grid-template-columns:1fr;} }
+  .equip-box{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+  }
+  .equip-box h3{
+    font-size:12.5px;
+    margin:0 0 8px;
+    color:var(--accent);
+    font-weight:800;
+  }
+  .equip-box ol{
+    margin:0;
+    padding-left:18px;
+    font-size:13px;
+    line-height:1.7;
+  }
+  .equip-box + .equip-box{margin-top:10px;}
+
   /* mode tabs (outer, bigger) */
   .mode-tabs{display:flex;gap:10px;margin-bottom:20px;}
   .mode-tab{
@@ -267,6 +292,14 @@
     flex:1;font-size:14px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;font-family:inherit;
   }
   select{font-family:inherit;}
+
+  .desk-text{
+    margin:0;
+    font-size:13.5px;
+    line-height:2.1;
+    color:var(--ink);
+  }
+
   footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center;}
 </style>
 </head>
@@ -284,6 +317,35 @@
       <button class="font-btn" data-font="hand2">손글씨 2</button>
     </div>
   </header>
+
+  <div class="panel">
+    <h2>장비 안내</h2>
+    <div class="equip-grid">
+      <div>
+        <div class="equip-box">
+          <h3>전자교탁 전원 끄기 · 신형</h3>
+          <ol>
+            <li>데스크탑 종료</li>
+            <li>운영모드에서 강의종료</li>
+            <li>스크린 다 올라가면</li>
+            <li>측면버튼 종료</li>
+          </ol>
+        </div>
+        <div class="equip-box">
+          <h3>전자교탁 전원 끄기 · 구형</h3>
+          <ol>
+            <li>데스크탑 종료</li>
+            <li>EXIT 터치 후 YES 버튼</li>
+            <li>상단 메인 버튼 종료</li>
+          </ol>
+        </div>
+      </div>
+      <div class="equip-box">
+        <h3>강의실별 책걸상 개수</h3>
+        <p class="desk-text" id="deskText"></p>
+      </div>
+    </div>
+  </div>
 
   <div class="mode-tabs" id="modeTabs">
     <button class="mode-tab" data-mode="mode3">3인 로테이션<span class="sub">1층·4층·5층 / 2층A / 2층B·3층</span></button>
@@ -356,6 +418,20 @@ const GROUPS_4 = [
   {label:'4층·5층',     rooms:['14415','14504']},
 ];
 
+const DESK_COUNTS = {
+  '14106': 82,
+  '14108': 26,
+  '14201': 31,
+  '14203': 30,
+  '14205': 30,
+  '14207': 20,
+  '14209': 32,
+  '14307': 34,
+  '14309': 44,
+  '14415': 51,
+  '14504': 20,
+};
+
 const DEFAULT_TASKS = [
   {id:'t1', label:'강의실 소등', mandatory:true},
   {id:'t2', label:'전자교탁 전원 끄기', mandatory:true},
@@ -374,7 +450,7 @@ const STORE_KEY = 'classroom_rotation_v3';
 function freshModeData(count){
   return {
     members: Array.from({length:count}, (_,i)=>`담당자${i+1}`),
-    startDate: '2026-07-12',
+    startDate: '2026-07-16',
     weekCount: 6,
     activeTab: 'tuethu',
     roomChecks: {},
@@ -415,41 +491,26 @@ function getMonday(d){
   return date;
 }
 
-function load(){
+async function load(){
   try{
-    const saved = localStorage.getItem(STORE_KEY);
-    if(saved){
-      const parsed = JSON.parse(saved);
+    const res = await window.storage.get(STORE_KEY, false);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
       state = Object.assign(state, parsed);
-      state.modes = state.modes || {};
-      state.modes.mode3 = Object.assign(
-        freshModeData(3),
-        parsed.modes ? parsed.modes.mode3 : {}
-      );
-      state.modes.mode4 = Object.assign(
-        freshModeData(4),
-        parsed.modes ? parsed.modes.mode4 : {}
-      );
+      state.modes.mode3 = Object.assign(freshModeData(3), parsed.modes ? parsed.modes.mode3 : {});
+      state.modes.mode4 = Object.assign(freshModeData(4), parsed.modes ? parsed.modes.mode4 : {});
     }
-  }catch(e){
-    console.warn('저장된 데이터를 불러오지 못했습니다.', e);
-  }
-
+  }catch(e){ }
   ['mode3','mode4'].forEach(m=>{
     const md = state.modes[m];
-    if(!md.startDate) md.startDate = '2026-07-12';
+    if(!md.startDate) md.startDate = '2026-07-16';
     if(!md.selectedDay) md.selectedDay = iso(new Date());
   });
-
   renderAll();
 }
-
-function save(){
-  try{
-    localStorage.setItem(STORE_KEY, JSON.stringify(state));
-  }catch(e){
-    console.error('저장 실패', e);
-  }
+async function save(){
+  try{ await window.storage.set(STORE_KEY, JSON.stringify(state), false); }
+  catch(e){ console.error('저장 실패', e); }
 }
 
 document.addEventListener('click', e => {
@@ -523,7 +584,7 @@ function renderMembers(){
   });
 }
 document.getElementById('startDate').addEventListener('change', e=>{
-  cur().startDate = iso(getMonday(new Date(e.target.value)));
+  cur().startDate = e.target.value;
   save(); renderSchedule();
 });
 document.getElementById('weekCount').addEventListener('change', e=>{
@@ -565,11 +626,16 @@ function renderZoneAssign(){
 
 function getTueThuDates(){
   const data = cur();
-  const monday = getMonday(parse(data.startDate));
+  const start = parse(data.startDate);
+  const needed = data.weekCount * 2;
   const list = [];
-  for(let w=0; w<data.weekCount; w++){
-    list.push(addDays(monday, w*7+1));
-    list.push(addDays(monday, w*7+3));
+  let d = new Date(start);
+  let guard = 0;
+  while(list.length < needed && guard < 400){
+    const dow = d.getDay();
+    if(dow === 2 || dow === 4) list.push(new Date(d));
+    d = addDays(d, 1);
+    guard++;
   }
   return list;
 }
@@ -744,7 +810,13 @@ function addCustomTask(){
   save(); renderDaily();
 }
 
+function renderDeskGrid(){
+  const wrap = document.getElementById('deskText');
+  wrap.textContent = ROOMS.map(r => `${r}호-${DESK_COUNTS[r] ?? '-'}개`).join(', ');
+}
+
 function renderAll(){
+  renderDeskGrid();
   document.querySelectorAll('.mode-tab').forEach(b=>{
     b.classList.toggle('active', b.dataset.mode === state.activeMode);
   });
