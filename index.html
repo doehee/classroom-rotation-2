@@ -299,6 +299,8 @@
     line-height:2.1;
     color:var(--ink);
   }
+  .desk-floor-line{margin-bottom:4px;}
+  .desk-floor-line b{color:var(--accent);margin-right:4px;}
 
   footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center;}
 </style>
@@ -311,10 +313,10 @@
       <div class="tagline">화·목 강의실 점검 &amp; 매일 마감 업무 체크리스트</div>
     </div>
     <div class="font-picker" id="fontPicker">
-      <button class="font-btn" data-font="gothic">고딕</button>
-      <button class="font-btn" data-font="myeongjo">명조</button>
-      <button class="font-btn" data-font="hand1">손글씨 1</button>
-      <button class="font-btn" data-font="hand2">손글씨 2</button>
+      <button class="font-btn" data-font="gothic" style="font-family:'Noto Sans KR',sans-serif;">Noto Sans KR</button>
+      <button class="font-btn" data-font="myeongjo" style="font-family:'Noto Serif KR',serif;">Noto Serif KR</button>
+      <button class="font-btn" data-font="hand1" style="font-family:'Gaegu',cursive;">Gaegu</button>
+      <button class="font-btn" data-font="hand2" style="font-family:'Nanum Pen Script',cursive;">나눔손글씨 펜</button>
     </div>
   </header>
 
@@ -342,7 +344,7 @@
       </div>
       <div class="equip-box">
         <h3>강의실별 책걸상 개수</h3>
-        <p class="desk-text" id="deskText"></p>
+        <div class="desk-text" id="deskText"></div>
       </div>
     </div>
   </div>
@@ -810,9 +812,20 @@ function addCustomTask(){
   save(); renderDaily();
 }
 
+const FLOOR_GROUPS = [
+  {floor:'1층', rooms:['14106','14108']},
+  {floor:'2층', rooms:['14201','14203','14205','14207','14209']},
+  {floor:'3층', rooms:['14307','14309']},
+  {floor:'4층', rooms:['14415']},
+  {floor:'5층', rooms:['14504']},
+];
+
 function renderDeskGrid(){
   const wrap = document.getElementById('deskText');
-  wrap.textContent = ROOMS.map(r => `${r}호-${DESK_COUNTS[r] ?? '-'}개`).join(', ');
+  wrap.innerHTML = FLOOR_GROUPS.map(fg=>{
+    const line = fg.rooms.map(r => `${r}호-${DESK_COUNTS[r] ?? '-'}개`).join(', ');
+    return `<div class="desk-floor-line"><b>${fg.floor}</b>: ${line}</div>`;
+  }).join('');
 }
 
 function renderAll(){
