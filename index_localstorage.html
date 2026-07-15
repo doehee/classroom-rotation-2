@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강의실 점검 로테이션</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Serif+KR:wght@400;500;700;900&family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1b1d22;
+    --paper:#f5f3ee;
+    --card:#ffffff;
+    --line:#e0dcd1;
+    --accent:#2f5d50;
+    --accent-2:#c9772f;
+    --accent-soft:#e5efe9;
+    --accent2-soft:#f7e9d8;
+    --mic-soft:#eef1fa;
+    --mic:#3a4fb0;
+    --danger:#b1483f;
+    --muted:#7d7868;
+    --font-body: 'Noto Sans KR', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    padding:28px 16px 70px;
+    transition:font-family .2s;
+  }
+  .wrap{max-width:900px;margin:0 auto;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:12px;
+    border-bottom:3px solid var(--ink);
+    padding-bottom:16px;
+    margin-bottom:20px;
+  }
+  h1{font-size:24px;margin:0;letter-spacing:-0.02em;}
+  .tagline{font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:.03em;}
+
+  .font-picker{display:flex;gap:6px;flex-wrap:wrap;}
+  .font-btn{
+    border:1px solid var(--line);
+    background:var(--card);
+    border-radius:8px;
+    padding:7px 12px;
+    font-size:12px;
+    cursor:pointer;
+    color:var(--ink);
+    position:relative;
+    overflow:hidden;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .font-btn:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.08);}
+  .font-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  /* mode tabs (outer, bigger) */
+  .mode-tabs{display:flex;gap:10px;margin-bottom:20px;}
+  .mode-tab{
+    position:relative;overflow:hidden;
+    flex:1;
+    padding:16px 14px;
+    border-radius:12px;
+    border:2px solid var(--line);
+    background:var(--card);
+    font-size:16px;font-weight:800;
+    cursor:pointer;color:var(--muted);
+    transition:all .18s ease;
+    font-family:inherit;
+  }
+  .mode-tab .sub{display:block;font-size:11px;font-weight:600;margin-top:3px;opacity:.75;}
+  .mode-tab:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08);}
+  .mode-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 20px;
+    margin-bottom:20px;
+  }
+  .panel h2{
+    font-size:13px;
+    margin:0 0 12px;
+    color:var(--muted);
+    font-weight:700;
+    letter-spacing:.04em;
+  }
+  .panel .hint{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;}
+
+  .members{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+  .member-chip{
+    display:flex;align-items:center;gap:4px;
+    background:var(--accent-soft);
+    border-radius:20px;
+    padding:5px 6px 5px 12px;
+  }
+  .member-chip .num{font-size:11px;color:var(--muted);}
+  .member-chip input{
+    border:none;background:transparent;outline:none;
+    font-size:14px;font-weight:700;color:var(--accent);
+    width:84px;font-family:inherit;
+  }
+
+  .row-config{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;}
+  .row-config label{
+    display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);
+  }
+  .row-config input{
+    font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;
+  }
+
+  .btn{
+    position:relative;overflow:hidden;
+    border:none;border-radius:9px;
+    padding:9px 18px;
+    font-size:13px;font-weight:700;
+    cursor:pointer;
+    color:#fff;background:var(--accent);
+    transition:transform .15s ease, box-shadow .2s ease, background .2s ease;
+    font-family:inherit;
+    letter-spacing:.01em;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(47,93,80,.35);}
+  .btn:active{transform:translateY(0) scale(.97);}
+  .btn.small{padding:6px 12px;font-size:12px;}
+  .ripple{
+    position:absolute;border-radius:50%;
+    background:rgba(255,255,255,.55);
+    transform:scale(0);
+    animation:rip .55s ease-out;
+    pointer-events:none;
+  }
+  @keyframes rip{to{transform:scale(2.6);opacity:0;}}
+
+  .tabs{display:flex;gap:8px;margin-bottom:18px;}
+  .tab-btn{
+    position:relative;overflow:hidden;
+    flex:1;
+    padding:12px 10px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--card);
+    font-size:14px;font-weight:700;
+    cursor:pointer;color:var(--muted);
+    transition:all .18s ease;
+    font-family:inherit;
+  }
+  .tab-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.06);}
+  .tab-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .zone-row{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px;
+  }
+  .zone-row .zlabel{font-weight:700;font-size:13px;}
+  .zone-row .zrooms{font-size:12px;color:var(--muted);}
+  .zone-row select{
+    font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);
+    font-weight:700;color:var(--accent);background:var(--accent-soft);font-family:inherit;
+  }
+
+  .sched-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 18px;
+    margin-bottom:14px;
+    transition:box-shadow .2s ease, border-color .2s ease;
+  }
+  .sched-card.complete{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
+  .sched-card-head{
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+    margin-bottom:12px;
+  }
+  .sched-date{font-size:15px;font-weight:800;}
+  .sched-date .dow{
+    display:inline-block;margin-left:6px;font-size:11px;padding:2px 8px;border-radius:20px;
+    background:var(--accent2-soft);color:var(--accent-2);font-weight:700;
+  }
+  .group-block{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:10px;
+  }
+  .group-block:last-child{margin-bottom:0;}
+  .group-head{
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;
+    margin-bottom:10px;
+  }
+  .group-name{font-size:13px;font-weight:800;color:var(--accent);}
+  .group-name .zn{color:var(--muted);font-weight:600;font-size:11px;margin-left:4px;}
+  .room-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(90px,1fr));
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .room-item{
+    display:flex;align-items:center;gap:6px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:7px 8px;
+    font-size:13px;
+    cursor:pointer;
+    transition:background .15s, border-color .15s;
+    user-select:none;
+  }
+  .room-item:hover{border-color:var(--accent);}
+  .room-item.checked{background:var(--accent-soft);border-color:var(--accent);font-weight:700;}
+  .room-item input{accent-color:var(--accent);width:16px;height:16px;cursor:pointer;}
+  .mic-item{
+    display:flex;align-items:center;gap:8px;
+    border:1px dashed var(--mic);
+    border-radius:8px;
+    padding:7px 10px;
+    font-size:12.5px;
+    cursor:pointer;
+    background:var(--mic-soft);
+    color:var(--mic);
+    font-weight:700;
+    transition:background .15s;
+  }
+  .mic-item.checked{background:var(--mic);color:#fff;}
+  .mic-item input{width:16px;height:16px;cursor:pointer;}
+  .progress-text{font-size:11px;color:var(--muted);margin-top:10px;text-align:right;}
+
+  .day-nav{
+    display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;
+  }
+  .day-nav .date-label{font-size:16px;font-weight:800;}
+  .day-nav input[type=date]{
+    font-size:13px;padding:6px 9px;border:1px solid var(--line);border-radius:7px;font-family:inherit;
+  }
+  .task-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .task-item{
+    display:flex;align-items:center;gap:10px;
+    border:1px solid var(--line);
+    border-radius:9px;padding:10px 12px;
+    transition:background .15s,border-color .15s;
+    cursor:pointer;
+  }
+  .task-item:hover{border-color:var(--accent);}
+  .task-item.checked{background:var(--accent-soft);border-color:var(--accent);}
+  .task-item input{width:18px;height:18px;accent-color:var(--accent);cursor:pointer;}
+  .task-item .label{flex:1;font-size:14px;}
+  .task-item.checked .label{text-decoration:line-through;color:var(--muted);}
+  .must-badge{font-size:10px;background:var(--accent2-soft);color:var(--accent-2);padding:2px 7px;border-radius:20px;font-weight:700;}
+  .del-task{
+    border:none;background:transparent;color:var(--muted);cursor:pointer;
+    border-radius:50%;width:22px;height:22px;font-size:13px;
+  }
+  .del-task:hover{background:#f0d9d5;color:var(--danger);}
+  .add-task-row{display:flex;gap:8px;}
+  .add-task-row input{
+    flex:1;font-size:14px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;font-family:inherit;
+  }
+  select{font-family:inherit;}
+  footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>강의실 점검 로테이션</h1>
+      <div class="tagline">화·목 강의실 점검 &amp; 매일 마감 업무 체크리스트</div>
+    </div>
+    <div class="font-picker" id="fontPicker">
+      <button class="font-btn" data-font="gothic">고딕</button>
+      <button class="font-btn" data-font="myeongjo">명조</button>
+      <button class="font-btn" data-font="hand1">손글씨 1</button>
+      <button class="font-btn" data-font="hand2">손글씨 2</button>
+    </div>
+  </header>
+
+  <div class="mode-tabs" id="modeTabs">
+    <button class="mode-tab" data-mode="mode3">3인 로테이션<span class="sub">1층·4층·5층 / 2층A / 2층B·3층</span></button>
+    <button class="mode-tab" data-mode="mode4">4인 로테이션<span class="sub">1층 / 2층A / 2층B·3층 / 4층·5층</span></button>
+  </div>
+
+  <div class="panel">
+    <h2>담당자</h2>
+    <div class="members" id="members"></div>
+  </div>
+
+  <div class="panel">
+    <h2>일정 설정</h2>
+    <div class="row-config">
+      <label>시작일 (화요일 기준 자동 보정)
+        <input type="date" id="startDate">
+      </label>
+      <label>표시할 주 수
+        <input type="number" id="weekCount" min="1" max="26" value="6" style="width:70px;">
+      </label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>구역 배정 (담당자별 점검 구역)</h2>
+    <div id="zoneAssign"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn" data-tab="tuethu">화·목 강의실 점검</button>
+    <button class="tab-btn" data-tab="daily">매일 마감 업무</button>
+  </div>
+
+  <div class="tab-panel" id="tab-tuethu">
+    <div id="scheduleList"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-daily">
+    <div class="panel">
+      <div class="day-nav">
+        <button class="btn small" id="prevDay">◀ 이전 날</button>
+        <span class="date-label" id="dayLabel"></span>
+        <button class="btn small" id="nextDay">다음 날 ▶</button>
+        <input type="date" id="dayPicker">
+        <select id="dailyAssignee"></select>
+      </div>
+      <div class="task-list" id="taskList"></div>
+      <div class="add-task-row">
+        <input type="text" id="newTaskInput" placeholder="기타 업무 추가 (예: 화이트보드 지우기)">
+        <button class="btn" id="addTaskBtn">추가</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>모든 체크 상태·담당자·업무 항목은 모드별로 자동 저장됩니다.</footer>
+</div>
+
+<script>
+const ROOMS = ['14106','14108','14201','14203','14205','14207','14209','14307','14309','14415','14504'];
+
+const GROUPS_3 = [
+  {label:'1층·4층·5층', rooms:['14106','14108','14415','14504']},
+  {label:'2층 A (3실)', rooms:['14201','14203','14205']},
+  {label:'2층 B·3층',   rooms:['14207','14209','14307','14309']},
+];
+const GROUPS_4 = [
+  {label:'1층',        rooms:['14106','14108']},
+  {label:'2층 A (3실)', rooms:['14201','14203','14205']},
+  {label:'2층 B·3층',   rooms:['14207','14209','14307','14309']},
+  {label:'4층·5층',     rooms:['14415','14504']},
+];
+
+const DEFAULT_TASKS = [
+  {id:'t1', label:'강의실 소등', mandatory:true},
+  {id:'t2', label:'전자교탁 전원 끄기', mandatory:true},
+  {id:'t3', label:'프로젝터 전원 끄기', mandatory:true},
+  {id:'t4', label:'커튼 치기', mandatory:true},
+  {id:'t5', label:'강의실 뒷문 잠그기', mandatory:true},
+];
+const FONT_MAP = {
+  gothic:   "'Noto Sans KR', sans-serif",
+  myeongjo: "'Noto Serif KR', serif",
+  hand1:    "'Gaegu', cursive",
+  hand2:    "'Nanum Pen Script', cursive",
+};
+const STORE_KEY = 'classroom_rotation_v3';
+
+function freshModeData(count){
+  return {
+    members: Array.from({length:count}, (_,i)=>`담당자${i+1}`),
+    startDate: '2026-07-12',
+    weekCount: 6,
+    activeTab: 'tuethu',
+    roomChecks: {},
+    micChecks: {},
+    groupAssign: {},
+    dailyAssign: {},
+    customTasks: [],
+    dailyChecks: {},
+    selectedDay: null
+  };
+}
+
+let state = {
+  activeMode: 'mode3',
+  font: 'gothic',
+  modes: {
+    mode3: freshModeData(3),
+    mode4: freshModeData(4)
+  }
+};
+
+function cur(){ return state.modes[state.activeMode]; }
+function getGroups(){ return state.activeMode === 'mode3' ? GROUPS_3 : GROUPS_4; }
+
+function iso(d){ return d.toISOString().slice(0,10); }
+function parse(s){ return new Date(s+'T00:00:00'); }
+function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function fmtKR(d){
+  const w = ['일','월','화','수','목','금','토'][d.getDay()];
+  return `${d.getMonth()+1}월 ${d.getDate()}일 (${w})`;
+}
+function getMonday(d){
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  date.setDate(date.getDate()+diff);
+  date.setHours(0,0,0,0);
+  return date;
+}
+
+function load(){
+  try{
+    const saved = localStorage.getItem(STORE_KEY);
+    if(saved){
+      const parsed = JSON.parse(saved);
+      state = Object.assign(state, parsed);
+      state.modes = state.modes || {};
+      state.modes.mode3 = Object.assign(
+        freshModeData(3),
+        parsed.modes ? parsed.modes.mode3 : {}
+      );
+      state.modes.mode4 = Object.assign(
+        freshModeData(4),
+        parsed.modes ? parsed.modes.mode4 : {}
+      );
+    }
+  }catch(e){
+    console.warn('저장된 데이터를 불러오지 못했습니다.', e);
+  }
+
+  ['mode3','mode4'].forEach(m=>{
+    const md = state.modes[m];
+    if(!md.startDate) md.startDate = '2026-07-12';
+    if(!md.selectedDay) md.selectedDay = iso(new Date());
+  });
+
+  renderAll();
+}
+
+function save(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  }catch(e){
+    console.error('저장 실패', e);
+  }
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn, .font-btn, .tab-btn, .mode-tab');
+  if(!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const span = document.createElement('span');
+  const size = Math.max(rect.width, rect.height);
+  span.className = 'ripple';
+  span.style.width = span.style.height = size+'px';
+  span.style.left = (e.clientX - rect.left - size/2)+'px';
+  span.style.top = (e.clientY - rect.top - size/2)+'px';
+  btn.appendChild(span);
+  setTimeout(()=>span.remove(), 550);
+});
+
+document.getElementById('fontPicker').addEventListener('click', e=>{
+  const b = e.target.closest('.font-btn');
+  if(!b) return;
+  state.font = b.dataset.font;
+  applyFont();
+  save();
+});
+function applyFont(){
+  document.body.style.setProperty('--font-body', FONT_MAP[state.font]);
+  document.querySelectorAll('.font-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.font === state.font);
+  });
+}
+
+/* mode tabs */
+document.getElementById('modeTabs').addEventListener('click', e=>{
+  const b = e.target.closest('.mode-tab');
+  if(!b) return;
+  state.activeMode = b.dataset.mode;
+  save();
+  renderAll();
+});
+
+/* inner tabs */
+document.querySelectorAll('.tabs .tab-btn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    cur().activeTab = b.dataset.tab;
+    save();
+    renderTabButtons();
+  });
+});
+function renderTabButtons(){
+  document.querySelectorAll('.tabs .tab-btn').forEach(x=>{
+    x.classList.toggle('active', x.dataset.tab === cur().activeTab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+  document.getElementById('tab-'+cur().activeTab).classList.add('active');
+}
+
+function renderMembers(){
+  const wrap = document.getElementById('members');
+  wrap.innerHTML = '';
+  cur().members.forEach((name, idx)=>{
+    const el = document.createElement('div');
+    el.className = 'member-chip';
+    el.innerHTML = `<span class="num">${idx+1}</span><input type="text" value="${name}" data-idx="${idx}">`;
+    wrap.appendChild(el);
+  });
+  wrap.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      const idx = +e.target.dataset.idx;
+      cur().members[idx] = e.target.value.trim() || `담당자${idx+1}`;
+      save(); renderZoneAssign(); renderSchedule(); renderDailyAssigneeOptions();
+    });
+  });
+}
+document.getElementById('startDate').addEventListener('change', e=>{
+  cur().startDate = iso(getMonday(new Date(e.target.value)));
+  save(); renderSchedule();
+});
+document.getElementById('weekCount').addEventListener('change', e=>{
+  cur().weekCount = Math.max(1, Math.min(26, +e.target.value || 6));
+  save(); renderSchedule();
+});
+
+function renderZoneAssign(){
+  const wrap = document.getElementById('zoneAssign');
+  const groups = getGroups();
+  const data = cur();
+  wrap.innerHTML = '';
+  groups.forEach((g, gi)=>{
+    const savedIdx = data.groupAssign[g.label];
+    const memberIdx = (savedIdx !== undefined && savedIdx < data.members.length) ? savedIdx : gi % data.members.length;
+    const row = document.createElement('div');
+    row.className = 'zone-row';
+    row.innerHTML = `
+      <div>
+        <div class="zlabel">${g.label}</div>
+        <div class="zrooms">${g.rooms.join(', ')}</div>
+      </div>
+      <select data-label="${g.label}"></select>
+    `;
+    const sel = row.querySelector('select');
+    data.members.forEach((m,i)=>{
+      const opt = document.createElement('option');
+      opt.value = i; opt.textContent = m;
+      if(i===memberIdx) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', e=>{
+      data.groupAssign[g.label] = +e.target.value;
+      save(); renderSchedule();
+    });
+    wrap.appendChild(row);
+  });
+}
+
+function getTueThuDates(){
+  const data = cur();
+  const monday = getMonday(parse(data.startDate));
+  const list = [];
+  for(let w=0; w<data.weekCount; w++){
+    list.push(addDays(monday, w*7+1));
+    list.push(addDays(monday, w*7+3));
+  }
+  return list;
+}
+
+function renderSchedule(){
+  const listEl = document.getElementById('scheduleList');
+  listEl.innerHTML = '';
+  const dates = getTueThuDates();
+  const groups = getGroups();
+  const data = cur();
+
+  dates.forEach(d=>{
+    const key = iso(d);
+    let totalItems = 0, doneItems = 0;
+
+    const card = document.createElement('div');
+    const dow = d.getDay()===2 ? '화요일' : '목요일';
+
+    const groupBlocks = groups.map((g, gi)=>{
+      const savedIdx = data.groupAssign[g.label];
+      const memberIdx = (savedIdx !== undefined && savedIdx < data.members.length) ? savedIdx : gi % data.members.length;
+      const assignee = data.members[memberIdx] ?? '(미지정)';
+      const micKey = `${key}_${g.label}`;
+      const micOn = !!data.micChecks[micKey];
+      totalItems += g.rooms.length + 1;
+      doneItems += g.rooms.filter(r=>data.roomChecks[`${key}_${r}`]).length + (micOn?1:0);
+
+      return `
+        <div class="group-block">
+          <div class="group-head">
+            <div class="group-name">${assignee}<span class="zn">· ${g.label}</span></div>
+          </div>
+          <div class="room-grid">
+            ${g.rooms.map(r=>{
+              const rk = `${key}_${r}`;
+              const on = !!data.roomChecks[rk];
+              return `<label class="room-item ${on?'checked':''}" data-key="${rk}">
+                        <input type="checkbox" ${on?'checked':''} data-key="${rk}">${r}
+                      </label>`;
+            }).join('')}
+          </div>
+          <label class="mic-item ${micOn?'checked':''}" data-mickey="${micKey}">
+            <input type="checkbox" ${micOn?'checked':''} data-mickey="${micKey}">🎤 ${g.label} 무선마이크 챙기기
+          </label>
+        </div>
+      `;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="sched-card-head">
+        <div class="sched-date">${d.getMonth()+1}/${d.getDate()}<span class="dow">${dow}</span></div>
+      </div>
+      ${groupBlocks}
+      <div class="progress-text">${doneItems} / ${totalItems} 완료</div>
+    `;
+    card.className = 'sched-card' + (doneItems === totalItems ? ' complete' : '');
+
+    card.querySelectorAll('.room-item').forEach(item=>{
+      item.addEventListener('click', e=>{
+        if(e.target.tagName === 'INPUT') return;
+        const cb = item.querySelector('input');
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change'));
+      });
+    });
+    card.querySelectorAll('input[data-key]').forEach(cb=>{
+      cb.addEventListener('change', e=>{
+        data.roomChecks[e.target.dataset.key] = e.target.checked;
+        save(); renderSchedule();
+      });
+    });
+    card.querySelectorAll('.mic-item').forEach(item=>{
+      item.addEventListener('click', e=>{
+        if(e.target.tagName === 'INPUT') return;
+        const cb = item.querySelector('input');
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change'));
+      });
+    });
+    card.querySelectorAll('input[data-mickey]').forEach(cb=>{
+      cb.addEventListener('change', e=>{
+        data.micChecks[e.target.dataset.mickey] = e.target.checked;
+        save(); renderSchedule();
+      });
+    });
+
+    listEl.appendChild(card);
+  });
+}
+
+function allTasks(){ return [...DEFAULT_TASKS, ...cur().customTasks]; }
+
+function renderDailyAssigneeOptions(){
+  const sel = document.getElementById('dailyAssignee');
+  const data = cur();
+  const current = data.dailyAssign[data.selectedDay];
+  sel.innerHTML = '';
+  data.members.forEach((m,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = m;
+    if(current === i || (current===undefined && i===0)) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+document.getElementById('dailyAssignee').addEventListener('change', e=>{
+  cur().dailyAssign[cur().selectedDay] = +e.target.value;
+  save();
+});
+
+function renderDaily(){
+  const data = cur();
+  const d = parse(data.selectedDay);
+  document.getElementById('dayLabel').textContent = fmtKR(d);
+  document.getElementById('dayPicker').value = data.selectedDay;
+  renderDailyAssigneeOptions();
+
+  const list = document.getElementById('taskList');
+  list.innerHTML = '';
+  allTasks().forEach(task=>{
+    const key = `${data.selectedDay}_${task.id}`;
+    const checked = !!data.dailyChecks[key];
+    const row = document.createElement('div');
+    row.className = 'task-item' + (checked ? ' checked':'');
+    row.innerHTML = `
+      <input type="checkbox" ${checked?'checked':''} data-key="${key}">
+      <span class="label">${task.label}</span>
+      ${task.mandatory ? '<span class="must-badge">필수</span>' : `<button class="del-task" data-id="${task.id}">✕</button>`}
+    `;
+    row.addEventListener('click', e=>{
+      if(e.target.tagName==='INPUT' || e.target.classList.contains('del-task')) return;
+      const cb = row.querySelector('input');
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change'));
+    });
+    row.querySelector('input').addEventListener('change', e=>{
+      data.dailyChecks[e.target.dataset.key] = e.target.checked;
+      save(); renderDaily();
+    });
+    const delBtn = row.querySelector('.del-task');
+    if(delBtn){
+      delBtn.addEventListener('click', ()=>{
+        data.customTasks = data.customTasks.filter(t=>t.id !== delBtn.dataset.id);
+        save(); renderDaily();
+      });
+    }
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('prevDay').addEventListener('click', ()=>{
+  cur().selectedDay = iso(addDays(parse(cur().selectedDay), -1));
+  save(); renderDaily();
+});
+document.getElementById('nextDay').addEventListener('click', ()=>{
+  cur().selectedDay = iso(addDays(parse(cur().selectedDay), 1));
+  save(); renderDaily();
+});
+document.getElementById('dayPicker').addEventListener('change', e=>{
+  cur().selectedDay = e.target.value;
+  save(); renderDaily();
+});
+document.getElementById('addTaskBtn').addEventListener('click', addCustomTask);
+document.getElementById('newTaskInput').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') addCustomTask();
+});
+function addCustomTask(){
+  const inp = document.getElementById('newTaskInput');
+  const val = inp.value.trim();
+  if(!val) return;
+  cur().customTasks.push({id:'c'+Date.now(), label:val, mandatory:false});
+  inp.value='';
+  save(); renderDaily();
+}
+
+function renderAll(){
+  document.querySelectorAll('.mode-tab').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode === state.activeMode);
+  });
+  document.getElementById('startDate').value = cur().startDate;
+  document.getElementById('weekCount').value = cur().weekCount;
+  applyFont();
+  renderMembers();
+  renderZoneAssign();
+  renderSchedule();
+  renderTabButtons();
+  renderDaily();
+}
+load();
+</script>
+</body>
+</html>
