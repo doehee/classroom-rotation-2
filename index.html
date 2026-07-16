@@ -224,8 +224,13 @@
     display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;
     margin-bottom:10px;
   }
-  .group-name{font-size:13px;font-weight:800;color:var(--accent);}
-  .group-name .zn{color:var(--muted);font-weight:600;font-size:11px;margin-left:4px;}
+  .group-name{font-size:13px;font-weight:800;color:var(--accent);display:flex;align-items:center;gap:4px;}
+  .group-name .zn{color:var(--muted);font-weight:600;font-size:11px;margin-left:2px;}
+  .assignee-select{
+    font-size:13px;padding:5px 9px;border-radius:8px;border:1px solid var(--line);
+    font-weight:800;color:var(--accent);background:var(--accent-soft);font-family:inherit;
+    cursor:pointer;
+  }
   .room-grid{
     display:grid;
     grid-template-columns:repeat(auto-fill,minmax(90px,1fr));
@@ -374,6 +379,7 @@
   <div class="panel">
     <h2>구역 배정 (담당자별 점검 구역)</h2>
     <div id="zoneAssign"></div>
+    <div class="hint">여기서 정한 담당자는 기본값이며, 아래 날짜별 일정 카드에서 날짜마다 다른 담당자로 바꿀 수 있습니다.</div>
   </div>
 
   <div class="tabs">
@@ -394,6 +400,7 @@
         <input type="date" id="dayPicker">
         <select id="dailyAssignee"></select>
       </div>
+      <div class="hint" style="margin-top:-8px;margin-bottom:12px;">담당자 지정은 위에서 선택한 날짜에만 저장되며, 날짜마다 다른 담당자로 바꿀 수 있습니다.</div>
       <div class="task-list" id="taskList"></div>
       <div class="add-task-row">
         <input type="text" id="newTaskInput" placeholder="기타 업무 추가 (예: 화이트보드 지우기)">
@@ -458,6 +465,7 @@ function freshModeData(count){
     roomChecks: {},
     micChecks: {},
     groupAssign: {},
+    dateGroupAssign: {},
     dailyAssign: {},
     customTasks: [],
     dailyChecks: {},
@@ -657,18 +665,27 @@ function renderSchedule(){
     const dow = d.getDay()===2 ? '화요일' : '목요일';
 
     const groupBlocks = groups.map((g, gi)=>{
+      const assignKey = `${key}_${g.label}`;
       const savedIdx = data.groupAssign[g.label];
-      const memberIdx = (savedIdx !== undefined && savedIdx < data.members.length) ? savedIdx : gi % data.members.length;
-      const assignee = data.members[memberIdx] ?? '(미지정)';
+      const defaultIdx = (savedIdx !== undefined && savedIdx < data.members.length) ? savedIdx : gi % data.members.length;
+      const overrideIdx = data.dateGroupAssign[assignKey];
+      const memberIdx = (overrideIdx !== undefined && overrideIdx < data.members.length) ? overrideIdx : defaultIdx;
       const micKey = `${key}_${g.label}`;
       const micOn = !!data.micChecks[micKey];
       totalItems += g.rooms.length + 1;
       doneItems += g.rooms.filter(r=>data.roomChecks[`${key}_${r}`]).length + (micOn?1:0);
 
+      const assigneeOptionsHtml = data.members.map((m,i)=>
+        `<option value="${i}" ${i===memberIdx?'selected':''}>${m}</option>`
+      ).join('');
+
       return `
         <div class="group-block">
           <div class="group-head">
-            <div class="group-name">${assignee}<span class="zn">· ${g.label}</span></div>
+            <div class="group-name">
+              <select class="assignee-select" data-assignkey="${assignKey}">${assigneeOptionsHtml}</select>
+              <span class="zn">· ${g.label}</span>
+            </div>
           </div>
           <div class="room-grid">
             ${g.rooms.map(r=>{
@@ -706,6 +723,12 @@ function renderSchedule(){
     card.querySelectorAll('input[data-key]').forEach(cb=>{
       cb.addEventListener('change', e=>{
         data.roomChecks[e.target.dataset.key] = e.target.checked;
+        save(); renderSchedule();
+      });
+    });
+    card.querySelectorAll('.assignee-select').forEach(sel=>{
+      sel.addEventListener('change', e=>{
+        data.dateGroupAssign[e.target.dataset.assignkey] = +e.target.value;
         save(); renderSchedule();
       });
     });
